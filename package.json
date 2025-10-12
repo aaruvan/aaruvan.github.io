@@ -10,11 +10,13 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@emotion/is-prop-valid": "^1.4.0",
+    "@emotion/styled": "^11.14.1",
+    "framer-motion": "^11.15.0",
+    "lucide-react": "^0.460.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "recharts": "^2.15.0",
-    "framer-motion": "^11.15.0",
-    "lucide-react": "^0.460.0"
+    "recharts": "^2.15.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
@@ -33,4 +35,3 @@
     "vite": "^6.0.5"
   }
 }
-
