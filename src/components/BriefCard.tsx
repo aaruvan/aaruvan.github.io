@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ExternalLink } from 'lucide-react';
 import { InsightCard } from './InsightCard';
 import { ConvictionChart } from './ConvictionChart';
+import { StockModal } from './StockModal';
 import type { Brief } from '../types';
 
 interface BriefCardProps {
@@ -10,6 +12,16 @@ interface BriefCardProps {
 
 export const BriefCard = ({ brief }: BriefCardProps) => {
   const { json: content } = brief;
+  const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
+
+  const handleTickerClick = (ticker: string) => {
+    console.log('Ticker clicked:', ticker);
+    setSelectedTicker(ticker);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedTicker(null);
+  };
 
   return (
     <motion.div
@@ -45,6 +57,7 @@ export const BriefCard = ({ brief }: BriefCardProps) => {
                 insight={insight}
                 variant="insight"
                 index={index}
+                onTickerClick={handleTickerClick}
               />
             ))}
           </div>
@@ -64,6 +77,7 @@ export const BriefCard = ({ brief }: BriefCardProps) => {
                 insight={item}
                 variant="watchlist"
                 index={index}
+                onTickerClick={handleTickerClick}
               />
             ))}
           </div>
@@ -103,6 +117,15 @@ export const BriefCard = ({ brief }: BriefCardProps) => {
       <div className="text-sm text-gray-600 dark:text-gray-400 italic text-center p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
         Note: This brief is synthesized from social posts. It is not investment advice.
       </div>
+
+      {/* Stock Modal */}
+      {selectedTicker && (
+        <StockModal
+          ticker={selectedTicker}
+          isOpen={!!selectedTicker}
+          onClose={handleCloseModal}
+        />
+      )}
     </motion.div>
   );
 };

@@ -301,7 +301,7 @@ function esc(s) {
             </table>
   
             <div style="max-width:600px;margin:10px auto 0 auto;font-size:11px;color:#6e7781;text-align:center;">
-              You’re receiving this because you subscribed to daily market updates.
+              You're receiving this because you subscribed to daily market updates.
             </div>
           </td>
         </tr>
@@ -375,99 +375,207 @@ function esc(s) {
       text                   // keep for email plaintext
     }
   }];
+
+
+// ============================================================================
+// NODE 5: HTTP Request - GET Current briefs.json from GitHub
+// ============================================================================
+// Node Type: HTTP Request
+// Method: GET
+// URL: https://api.github.com/repos/aaruvan/aaruvan.github.io/contents/public/briefs.json
+// Authentication: Generic Credential Type
+//   - Credential Type: Header Auth
+//   - Name: Authorization
+//   - Value: token YOUR_GITHUB_PAT_HERE
+// 
+// Response Format: JSON
+// 
+// This node fetches the current briefs.json file from GitHub.
+// GitHub returns:
+// {
+//   "content": "base64-encoded-json",
+//   "sha": "file-version-hash"
+// }
+
+
+// ============================================================================
+// NODE 6: Code - Parse, Append, and Prepare Update
+// ============================================================================
+/**
+ * IMPORTANT: This node needs TWO inputs!
+ * Input 1 (Node 5): GitHub GET response (HTTP Request node)
+ * Input 2 (Node 4): New brief to add (formatter node)
+ * 
+ * To connect multiple inputs:
+ * 1. Connect Node 5 to this node normally
+ * 2. Hold SHIFT and drag from Node 4 to this node
+ */
+
+// Get all items from both inputs
+const allItems = $input.all();
+
+// Debug: Log what we received (will show in n8n execution log)
+console.log('Total items received:', allItems.length);
+allItems.forEach((item, idx) => {
+  console.log(`Item ${idx} keys:`, Object.keys(item.json).join(', '));
+});
+
+// Separate items by source
+let githubData = null;
+let newBrief = null;
+
+// Find the GitHub response and new brief
+for (const item of allItems) {
+  const data = item.json;
   
+  // GitHub API response check (look for distinctive GitHub fields)
+  if (data.sha && data.content && data.path && data.type === 'file') {
+    console.log('Found GitHub response!');
+    githubData = data;
+  } 
+  // New brief check (look for our brief structure)
+  else if (data.id && data.date && data.subject && data.json) {
+    console.log('Found new brief!');
+    newBrief = data;
+  }
+}
+
+// Validate we have both inputs
+if (!githubData) {
+  console.error('Could not find GitHub data. Items:', JSON.stringify(allItems.map(i => Object.keys(i.json)), null, 2));
+  throw new Error('GitHub API response not found. Make sure Node 5 (HTTP GET) is connected.');
+}
+if (!newBrief) {
+  console.error('Could not find new brief. Items:', JSON.stringify(allItems.map(i => Object.keys(i.json)), null, 2));
+  throw new Error('New brief not found. Make sure Node 4 (formatter) is connected.');
+}
+
+// Decode base64 content from GitHub
+const base64Content = githubData.content;
+const decodedContent = Buffer.from(base64Content, 'base64').toString('utf-8');
+
+// Parse existing briefs
+let briefsArray = [];
+try {
+  briefsArray = JSON.parse(decodedContent);
+  if (!Array.isArray(briefsArray)) {
+    briefsArray = [];
+  }
+} catch (e) {
+  // If file doesn't exist or is invalid, start fresh
+  briefsArray = [];
+}
+
+// Check if this date already exists (prevent duplicates)
+const existingIndex = briefsArray.findIndex(b => b.id === newBrief.id);
+if (existingIndex >= 0) {
+  // Update existing entry
+  briefsArray[existingIndex] = newBrief;
+} else {
+  // Add new entry at the beginning (newest first)
+  briefsArray.unshift(newBrief);
+}
+
+// Limit to last 30 briefs (optional, keeps file size manageable)
+if (briefsArray.length > 30) {
+  briefsArray = briefsArray.slice(0, 30);
+}
+
+// Convert back to JSON string (pretty print for readability)
+const updatedJsonString = JSON.stringify(briefsArray, null, 2);
+
+// Encode to base64 for GitHub API
+const updatedBase64 = Buffer.from(updatedJsonString, 'utf-8').toString('base64');
+
+// Return data needed for PUT request
+return [{
+  json: {
+    content: updatedBase64,
+    sha: githubData.sha,  // Required by GitHub API to update file
+    message: `Update daily brief for ${newBrief.date}`,
+    briefCount: briefsArray.length,
+    addedBrief: newBrief.id  // For debugging
+  }
+}];
 
 
-  //node 4 most recent output:
-//   [
-//     {
-//       "id": "2025-10-12",
-//       "date": "2025-10-12",
-//       "subject": "Market Brief — October 12, 2025",
-//       "json": {
-//         "summary": "Today's tweets highlight significant themes in rare earth elements, AI infrastructure, and market dynamics. There is a focus on the strategic importance of rare earth elements, particularly in the context of U.S.-China relations, with $MP being a notable company in this sector. The AI infrastructure landscape is evolving, with companies like $NBIS playing a crucial role in providing scalable compute solutions. Market sentiment is mixed, with discussions on potential pullbacks and the importance of long-term investment strategies. Additionally, $AMZN is highlighted for its robust growth across various sectors, including AWS and AI integration.",
-//         "insights": [
-//           {
-//             "ticker": "MP",
-//             "bullet": "Potential beneficiary of U.S. efforts to build a domestic rare earth supply chain.",
-//             "horizon": "long-term",
-//             "conviction": "medium",
-//             "recommendation": "Consider investing due to strategic importance in rare earth supply."
-//           },
-//           {
-//             "ticker": "NBIS",
-//             "bullet": "Critical role in AI infrastructure by providing scalable compute solutions.",
-//             "horizon": "long-term",
-//             "conviction": "high",
-//             "recommendation": "Invest for exposure to AI infrastructure growth."
-//           },
-//           {
-//             "ticker": "AMZN",
-//             "bullet": "Strong growth in AWS, ad business, and AI integration.",
-//             "horizon": "long-term",
-//             "conviction": "high",
-//             "recommendation": "Invest for long-term growth across multiple sectors."
-//           },
-//           {
-//             "ticker": "ASTS",
-//             "bullet": "Secured significant deals with global carriers, enhancing its market position.",
-//             "horizon": "long-term",
-//             "conviction": "medium",
-//             "recommendation": "Consider investing as it expands its global telecom reach."
-//           }
-//         ],
-//         "watchlist": [
-//           {
-//             "ticker": "GXO",
-//             "why": "Potential play in robotics and automation.",
-//             "horizon": "short-term",
-//             "recommendation": "Monitor for entry opportunities."
-//           },
-//           {
-//             "ticker": "RDW",
-//             "why": "Undervalued space sector opportunity.",
-//             "horizon": "short-term",
-//             "recommendation": "Monitor for potential undervaluation."
-//           },
-//           {
-//             "ticker": "JOBY",
-//             "why": "Leader in the eVTOL sector.",
-//             "horizon": "long-term",
-//             "recommendation": "Monitor for technological advancements."
-//           },
-//           {
-//             "ticker": "HLX",
-//             "why": "Involved in robotics and offshore energy.",
-//             "horizon": "short-term",
-//             "recommendation": "Monitor for sector developments."
-//           },
-//           {
-//             "ticker": "VNET",
-//             "why": "Deep value in China data-center operations.",
-//             "horizon": "long-term",
-//             "recommendation": "Monitor for valuation improvements."
-//           }
-//         ],
-//         "sources": [
-//           {
-//             "url": "https://twitter.com/mvcinvesting/status/2025-10-12T13:55:16.561Z",
-//             "note": "Rare Earth Elements write-up"
-//           },
-//           {
-//             "url": "https://twitter.com/mvcinvesting/status/2025-10-12T13:55:16.562Z",
-//             "note": "AI infrastructure discussion"
-//           },
-//           {
-//             "url": "https://twitter.com/StockSavvyShay/status/2025-10-12T13:55:50.296Z",
-//             "note": "Amazon growth analysis"
-//           },
-//           {
-//             "url": "https://twitter.com/spacanpanman/status/2025-10-12T13:56:09.474Z",
-//             "note": "AST SpaceMobile deal announcement"
-//           }
-//         ]
-//       },
-//       "html": "<!doctype html>\n    <html>\n    <head>\n      <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/>\n      <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n      <title>Aarush&#39;s Daily Market Brief</title>\n    </head>\n    <body style=\"margin:0;padding:0;background:#f6f8fa;\">\n      <table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" width=\"100%\" style=\"background:#f6f8fa;\">\n        <tr>\n          <td style=\"padding:20px 12px;\">\n            <table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" align=\"center\" width=\"100%\" style=\"max-width:600px;background:#ffffff;border:1px solid #eaeef2;border-radius:10px;overflow:hidden;\">\n              <tr>\n                <td style=\"background:#111827;padding:18px 20px;\">\n                  <h1 style=\"margin:0;font-size:20px;line-height:1.2;color:#ffffff;\">Aarush&#39;s Daily Market Brief</h1>\n                  <div style=\"margin-top:4px;font-size:12px;color:#c9d1d9;\">October 12, 2025</div>\n                </td>\n              </tr>\n  \n              \n      \n      <tr>\n        <td style=\"padding:18px 20px 8px 20px;\">\n          <h2 style=\"margin:0;font-size:18px;line-height:1.3;font-weight:700;color:#111827;\">Summary</h2>\n        </td>\n      </tr>\n      <tr>\n        <td style=\"padding:8px 20px 16px 20px;color:#24292f;font-size:14px;line-height:1.6;\">\n          Today&#39;s tweets highlight significant themes in rare earth elements, AI infrastructure, and market dynamics. There is a focus on the strategic importance of rare earth elements, particularly in the context of U.S.-China relations, with $MP being a notable company in this sector. The AI infrastructure landscape is evolving, with companies like $NBIS playing a crucial role in providing scalable compute solutions. Market sentiment is mixed, with discussions on potential pullbacks and the importance of long-term investment strategies. Additionally, $AMZN is highlighted for its robust growth across various sectors, including AWS and AI integration.\n        </td>\n      </tr>\n              \n      \n      <tr>\n        <td style=\"padding:18px 20px 8px 20px;\">\n          <h2 style=\"margin:0;font-size:18px;line-height:1.3;font-weight:700;color:#111827;\">Insights</h2>\n        </td>\n      </tr>\n      <tr>\n        <td style=\"padding:6px 12px 2px 12px;\">\n          <table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"border-collapse:collapse;\">\n            <tbody>\n              \n                <tr>\n                  <td style=\"padding:10px;border-bottom:1px solid #eaeef2;\">\n                    <div style=\"font-size:14px;\">\n                      <strong style=\"background:#2563eb;color:#fff;border-radius:6px;padding:2px 6px;margin-right:8px;display:inline-block;\">\n                        MP\n                      </strong>\n                      <span style=\"color:#24292f;\">Potential beneficiary of U.S. efforts to build a domestic rare earth supply chain.</span>\n                    </div>\n                    <div style=\"margin-top:6px;font-size:12px;color:#57606a;\">\n                      \n      <span style=\"display:inline-block;padding:3px 8px;border:1px solid #d0d7de;border-radius:999px;font-size:12px;line-height:1.2;margin-right:6px;\">\n        Horizon: long-term\n      </span>\n                      \n      <span style=\"display:inline-block;padding:3px 8px;border:1px solid #d0d7de;border-radius:999px;font-size:12px;line-height:1.2;margin-right:6px;\">\n        Conviction: medium\n      </span>\n                    </div>\n                    \n                      <div style=\"margin-top:8px;font-size:13px;color:#24292f;\">\n                        <em>Consider investing due to strategic importance in rare earth supply.</em>\n                      </div>\n                  </td>\n                </tr>\n              \n                <tr>\n                  <td style=\"padding:10px;border-bottom:1px solid #eaeef2;\">\n                    <div style=\"font-size:14px;\">\n                      <strong style=\"background:#2563eb;color:#fff;border-radius:6px;padding:2px 6px;margin-right:8px;display:inline-block;\">\n                        NBIS\n                      </strong>\n                      <span style=\"color:#24292f;\">Critical role in AI infrastructure by providing scalable compute solutions.</span>\n                    </div>\n                    <div style=\"margin-top:6px;font-size:12px;color:#57606a;\">\n                      \n      <span style=\"display:inline-block;padding:3px 8px;border:1px solid #d0d7de;border-radius:999px;font-size:12px;line-height:1.2;margin-right:6px;\">\n        Horizon: long-term\n      </span>\n                      \n      <span style=\"display:inline-block;padding:3px 8px;border:1px solid #d0d7de;border-radius:999px;font-size:12px;line-height:1.2;margin-right:6px;\">\n        Conviction: high\n      </span>\n                    </div>\n                    \n                      <div style=\"margin-top:8px;font-size:13px;color:#24292f;\">\n                        <em>Invest for exposure to AI infrastructure growth.</em>\n                      </div>\n                  </td>\n                </tr>\n              \n                <tr>\n                  <td style=\"padding:10px;border-bottom:1px solid #eaeef2;\">\n                    <div style=\"font-size:14px;\">\n                      <strong style=\"background:#2563eb;color:#fff;border-radius:6px;padding:2px 6px;margin-right:8px;display:inline-block;\">\n                        AMZN\n                      </strong>\n                      <span style=\"color:#24292f;\">Strong growth in AWS, ad business, and AI integration.</span>\n                    </div>\n                    <div style=\"margin-top:6px;font-size:12px;color:#57606a;\">\n                      \n      <span style=\"display:inline-block;padding:3px 8px;border:1px solid #d0d7de;border-radius:999px;font-size:12px;line-height:1.2;margin-right:6px;\">\n        Horizon: long-term\n      </span>\n                      \n      <span style=\"display:inline-block;padding:3px 8px;border:1px solid #d0d7de;border-radius:999px;font-size:12px;line-height:1.2;margin-right:6px;\">\n        Conviction: high\n      </span>\n                    </div>\n                    \n                      <div style=\"margin-top:8px;font-size:13px;color:#24292f;\">\n                        <em>Invest for long-term growth across multiple sectors.</em>\n                      </div>\n                  </td>\n                </tr>\n              \n                <tr>\n                  <td style=\"padding:10px;border-bottom:1px solid #eaeef2;\">\n                    <div style=\"font-size:14px;\">\n                      <strong style=\"background:#2563eb;color:#fff;border-radius:6px;padding:2px 6px;margin-right:8px;display:inline-block;\">\n                        ASTS\n                      </strong>\n                      <span style=\"color:#24292f;\">Secured significant deals with global carriers, enhancing its market position.</span>\n                    </div>\n                    <div style=\"margin-top:6px;font-size:12px;color:#57606a;\">\n                      \n      <span style=\"display:inline-block;padding:3px 8px;border:1px solid #d0d7de;border-radius:999px;font-size:12px;line-height:1.2;margin-right:6px;\">\n        Horizon: long-term\n      </span>\n                      \n      <span style=\"display:inline-block;padding:3px 8px;border:1px solid #d0d7de;border-radius:999px;font-size:12px;line-height:1.2;margin-right:6px;\">\n        Conviction: medium\n      </span>\n                    </div>\n                    \n                      <div style=\"margin-top:8px;font-size:13px;color:#24292f;\">\n                        <em>Consider investing as it expands its global telecom reach.</em>\n                      </div>\n                  </td>\n                </tr>\n              \n            </tbody>\n          </table>\n        </td>\n      </tr>\n              \n      \n      <tr>\n        <td style=\"padding:18px 20px 8px 20px;\">\n          <h2 style=\"margin:0;font-size:18px;line-height:1.3;font-weight:700;color:#111827;\">Watchlist</h2>\n        </td>\n      </tr>\n      <tr>\n        <td style=\"padding:6px 12px 2px 12px;\">\n          <table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"border-collapse:collapse;\">\n            <tbody>\n              \n                <tr>\n                  <td style=\"padding:10px;border-bottom:1px solid #eaeef2;\">\n                    <div style=\"font-size:14px;\">\n                      <strong style=\"background:#eaeef2;color:#24292f;border-radius:6px;padding:2px 6px;margin-right:8px;display:inline-block;\">\n                        GXO\n                      </strong>\n                      <span style=\"color:#24292f;\">Potential play in robotics and automation.</span>\n                    </div>\n                    <div style=\"margin-top:6px;font-size:12px;color:#57606a;\">\n                      \n      <span style=\"display:inline-block;padding:3px 8px;border:1px solid #d0d7de;border-radius:999px;font-size:12px;line-height:1.2;margin-right:6px;\">\n        Horizon: short-term\n      </span>\n                    </div>\n                    \n                      <div style=\"margin-top:8px;font-size:13px;color:#24292f;\">\n                        <em>Monitor for entry opportunities.</em>\n                      </div>\n                  </td>\n                </tr>\n              \n                <tr>\n                  <td style=\"padding:10px;border-bottom:1px solid #eaeef2;\">\n                    <div style=\"font-size:14px;\">\n                      <strong style=\"background:#eaeef2;color:#24292f;border-radius:6px;padding:2px 6px;margin-right:8px;display:inline-block;\">\n                        RDW\n                      </strong>\n                      <span style=\"color:#24292f;\">Undervalued space sector opportunity.</span>\n                    </div>\n                    <div style=\"margin-top:6px;font-size:12px;color:#57606a;\">\n                      \n      <span style=\"display:inline-block;padding:3px 8px;border:1px solid #d0d7de;border-radius:999px;font-size:12px;line-height:1.2;margin-right:6px;\">\n        Horizon: short-term\n      </span>\n                    </div>\n                    \n                      <div style=\"margin-top:8px;font-size:13px;color:#24292f;\">\n                        <em>Monitor for potential undervaluation.</em>\n                      </div>\n                  </td>\n                </tr>\n              \n                <tr>\n                  <td style=\"padding:10px;border-bottom:1px solid #eaeef2;\">\n                    <div style=\"font-size:14px;\">\n                      <strong style=\"background:#eaeef2;color:#24292f;border-radius:6px;padding:2px 6px;margin-right:8px;display:inline-block;\">\n                        JOBY\n                      </strong>\n                      <span style=\"color:#24292f;\">Leader in the eVTOL sector.</span>\n                    </div>\n                    <div style=\"margin-top:6px;font-size:12px;color:#57606a;\">\n                      \n      <span style=\"display:inline-block;padding:3px 8px;border:1px solid #d0d7de;border-radius:999px;font-size:12px;line-height:1.2;margin-right:6px;\">\n        Horizon: long-term\n      </span>\n                    </div>\n                    \n                      <div style=\"margin-top:8px;font-size:13px;color:#24292f;\">\n                        <em>Monitor for technological advancements.</em>\n                      </div>\n                  </td>\n                </tr>\n              \n                <tr>\n                  <td style=\"padding:10px;border-bottom:1px solid #eaeef2;\">\n                    <div style=\"font-size:14px;\">\n                      <strong style=\"background:#eaeef2;color:#24292f;border-radius:6px;padding:2px 6px;margin-right:8px;display:inline-block;\">\n                        HLX\n                      </strong>\n                      <span style=\"color:#24292f;\">Involved in robotics and offshore energy.</span>\n                    </div>\n                    <div style=\"margin-top:6px;font-size:12px;color:#57606a;\">\n                      \n      <span style=\"display:inline-block;padding:3px 8px;border:1px solid #d0d7de;border-radius:999px;font-size:12px;line-height:1.2;margin-right:6px;\">\n        Horizon: short-term\n      </span>\n                    </div>\n                    \n                      <div style=\"margin-top:8px;font-size:13px;color:#24292f;\">\n                        <em>Monitor for sector developments.</em>\n                      </div>\n                  </td>\n                </tr>\n              \n                <tr>\n                  <td style=\"padding:10px;border-bottom:1px solid #eaeef2;\">\n                    <div style=\"font-size:14px;\">\n                      <strong style=\"background:#eaeef2;color:#24292f;border-radius:6px;padding:2px 6px;margin-right:8px;display:inline-block;\">\n                        VNET\n                      </strong>\n                      <span style=\"color:#24292f;\">Deep value in China data-center operations.</span>\n                    </div>\n                    <div style=\"margin-top:6px;font-size:12px;color:#57606a;\">\n                      \n      <span style=\"display:inline-block;padding:3px 8px;border:1px solid #d0d7de;border-radius:999px;font-size:12px;line-height:1.2;margin-right:6px;\">\n        Horizon: long-term\n      </span>\n                    </div>\n                    \n                      <div style=\"margin-top:8px;font-size:13px;color:#24292f;\">\n                        <em>Monitor for valuation improvements.</em>\n                      </div>\n                  </td>\n                </tr>\n              \n            </tbody>\n          </table>\n        </td>\n      </tr>\n              \n      \n      <tr>\n        <td style=\"padding:18px 20px 8px 20px;\">\n          <h2 style=\"margin:0;font-size:18px;line-height:1.3;font-weight:700;color:#111827;\">Sources</h2>\n        </td>\n      </tr>\n      <tr>\n        <td style=\"padding:6px 20px 16px 20px;\">\n          <ul style=\"margin:0;padding-left:18px;color:#24292f;font-size:13px;line-height:1.6;\">\n            \n              <li style=\"margin-bottom:6px;\">\n                <span>Rare Earth Elements write-up — </span>\n                <a href=\"https://twitter.com/mvcinvesting/status/2025-10-12T13:55:16.561Z\" style=\"color:#2563eb;text-decoration:none;\">https://twitter.com/mvcinvesting/status/2025-10-12T13:55:16.561Z</a>\n              </li>\n            \n              <li style=\"margin-bottom:6px;\">\n                <span>AI infrastructure discussion — </span>\n                <a href=\"https://twitter.com/mvcinvesting/status/2025-10-12T13:55:16.562Z\" style=\"color:#2563eb;text-decoration:none;\">https://twitter.com/mvcinvesting/status/2025-10-12T13:55:16.562Z</a>\n              </li>\n            \n              <li style=\"margin-bottom:6px;\">\n                <span>Amazon growth analysis — </span>\n                <a href=\"https://twitter.com/StockSavvyShay/status/2025-10-12T13:55:50.296Z\" style=\"color:#2563eb;text-decoration:none;\">https://twitter.com/StockSavvyShay/status/2025-10-12T13:55:50.296Z</a>\n              </li>\n            \n              <li style=\"margin-bottom:6px;\">\n                <span>AST SpaceMobile deal announcement — </span>\n                <a href=\"https://twitter.com/spacanpanman/status/2025-10-12T13:56:09.474Z\" style=\"color:#2563eb;text-decoration:none;\">https://twitter.com/spacanpanman/status/2025-10-12T13:56:09.474Z</a>\n              </li>\n            \n          </ul>\n        </td>\n      </tr>\n  \n              <tr>\n                <td style=\"padding:16px 20px;background:#fafbfc;border-top:1px solid #eaeef2;color:#57606a;font-size:12px;\">\n                  Built with n8n + OpenAI\n                </td>\n              </tr>\n            </table>\n  \n            <div style=\"max-width:600px;margin:10px auto 0 auto;font-size:11px;color:#6e7781;text-align:center;\">\n              You’re receiving this because you subscribed to daily market updates.\n            </div>\n          </td>\n        </tr>\n      </table>\n    </body>\n    </html>",
-//       "text": "Aarush's Daily Market Brief — October 12, 2025\n\nSummary:\nToday's tweets highlight significant themes in rare earth elements, AI infrastructure, and market dynamics. There is a focus on the strategic importance of rare earth elements, particularly in the context of U.S.-China relations, with $MP being a notable company in this sector. The AI infrastructure landscape is evolving, with companies like $NBIS playing a crucial role in providing scalable compute solutions. Market sentiment is mixed, with discussions on potential pullbacks and the importance of long-term investment strategies. Additionally, $AMZN is highlighted for its robust growth across various sectors, including AWS and AI integration.\n\nInsights:\n- MP: Potential beneficiary of U.S. efforts to build a domestic rare earth supply chain. [Horizon: long-term, Conviction: medium]\n  Recommendation: Consider investing due to strategic importance in rare earth supply.\n- NBIS: Critical role in AI infrastructure by providing scalable compute solutions. [Horizon: long-term, Conviction: high]\n  Recommendation: Invest for exposure to AI infrastructure growth.\n- AMZN: Strong growth in AWS, ad business, and AI integration. [Horizon: long-term, Conviction: high]\n  Recommendation: Invest for long-term growth across multiple sectors.\n- ASTS: Secured significant deals with global carriers, enhancing its market position. [Horizon: long-term, Conviction: medium]\n  Recommendation: Consider investing as it expands its global telecom reach.\n\nWatchlist:\n- GXO: Potential play in robotics and automation. [Horizon: short-term]\n  Recommendation: Monitor for entry opportunities.\n- RDW: Undervalued space sector opportunity. [Horizon: short-term]\n  Recommendation: Monitor for potential undervaluation.\n- JOBY: Leader in the eVTOL sector. [Horizon: long-term]\n  Recommendation: Monitor for technological advancements.\n- HLX: Involved in robotics and offshore energy. [Horizon: short-term]\n  Recommendation: Monitor for sector developments.\n- VNET: Deep value in China data-center operations. [Horizon: long-term]\n  Recommendation: Monitor for valuation improvements.\n\nSources:\n- Rare Earth Elements write-up https://twitter.com/mvcinvesting/status/2025-10-12T13:55:16.561Z\n- AI infrastructure discussion https://twitter.com/mvcinvesting/status/2025-10-12T13:55:16.562Z\n- Amazon growth analysis https://twitter.com/StockSavvyShay/status/2025-10-12T13:55:50.296Z\n- AST SpaceMobile deal announcement https://twitter.com/spacanpanman/status/2025-10-12T13:56:09.474Z"
-//     }
-//   ]
+// ============================================================================
+// NODE 7: HTTP Request - PUT Updated briefs.json to GitHub
+// ============================================================================
+// Node Type: HTTP Request
+// Method: PUT
+// URL: https://api.github.com/repos/aaruvan/aaruvan.github.io/contents/public/briefs.json
+// Authentication: Generic Credential Type
+//   - Credential Type: Header Auth
+//   - Name: Authorization
+//   - Value: token YOUR_GITHUB_PAT_HERE
+// 
+// Body: JSON
+// {
+//   "message": "{{ $json.message }}",
+//   "content": "{{ $json.content }}",
+//   "sha": "{{ $json.sha }}"
+// }
+// 
+// Response Format: JSON
+// 
+// This updates the file on GitHub. The website will fetch the updated file
+// on the next page load - no rebuild needed!
+
+
+// ============================================================================
+// WORKFLOW CONNECTION DIAGRAM
+// ============================================================================
+/*
+
+Node 4 (Format Brief)
+    ↓
+    ├──→ Email Node (send email)
+    │
+    └──→ Node 5 (GET briefs.json) ──→ Node 6 (Merge & Prepare) ──→ Node 7 (PUT to GitHub)
+                                            ↑
+                                            │
+                                    (Also receives Node 4 output)
+
+*/
+
+
+// ============================================================================
+// IMPORTANT NOTES FOR SETUP
+// ============================================================================
+/*
+
+1. GITHUB PERSONAL ACCESS TOKEN
+   - Go to: https://github.com/settings/tokens
+   - Generate new token (classic)
+   - Required scopes: 'repo' (full control of private repositories)
+   - Copy token and save it securely
+   - Use format: token ghp_YOUR_TOKEN_HERE
+
+2. N8N NODE CONFIGURATION
+
+   Node 6 needs TWO inputs:
+   - Input 1: Node 5 (GitHub GET response)
+   - Input 2: Node 4 (New brief to add)
+   
+   To connect multiple inputs in n8n:
+   a) Create Node 6 (Code node)
+   b) Connect Node 5 output to Node 6
+   c) Hold Shift and drag from Node 4 to Node 6 for second input
+
+3. FILE PATH
+   - Must be: public/briefs.json
+   - NOT: briefs.json or /briefs.json
+   - The path is relative to repo root
+
+4. TESTING
+   - Run workflow manually first
+   - Check: https://github.com/aaruvan/aaruvan.github.io/blob/main/public/briefs.json
+   - Visit: https://aaruvan.github.io/ (wait 30 seconds for cache refresh)
+
+5. ERROR HANDLING
+   - If SHA mismatch error: Someone else updated the file, retry
+   - If 404 error: File path is wrong, check 'public/briefs.json'
+   - If 401 error: Token is invalid or missing 'repo' scope
+
+*/

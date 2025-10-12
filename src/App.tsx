@@ -91,9 +91,13 @@ function App() {
     );
   }
 
+  // Get today's date in local timezone (not UTC)
+  const today = new Date();
+  const localDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Header currentDate={currentBrief?.date} />
+      <Header currentDate={localDate} />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
