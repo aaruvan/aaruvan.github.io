@@ -39,11 +39,6 @@ export const BriefCard = ({ brief }: BriefCardProps) => {
         </p>
       </section>
 
-      {/* Conviction Chart */}
-      {content.insights.length > 0 && (
-        <ConvictionChart insights={content.insights} />
-      )}
-
       {/* Insights Section */}
       {content.insights.length > 0 && (
         <section className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -62,6 +57,11 @@ export const BriefCard = ({ brief }: BriefCardProps) => {
             ))}
           </div>
         </section>
+      )}
+
+      {/* Conviction Chart */}
+      {content.insights.length > 0 && (
+        <ConvictionChart insights={content.insights} />
       )}
 
       {/* Watchlist Section */}
