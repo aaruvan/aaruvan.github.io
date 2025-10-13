@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Don't commit root briefs.json (use public/briefs.json instead)
+/briefs.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
