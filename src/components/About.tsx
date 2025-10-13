@@ -57,7 +57,7 @@ export const About = () => {
       <section className="bg-gradient-to-br from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-900 rounded-lg p-8 text-white shadow-lg">
         <div className="flex items-center gap-3 mb-4">
           <Info className="w-8 h-8" />
-          <h1 className="text-4xl font-bold">About FinTweets</h1>
+          <h1 className="text-4xl font-bold">About</h1>
         </div>
         <p className="text-blue-100 text-lg leading-relaxed">
           Your daily digest of market insights, powered by the most informed voices in finance Twitter.
@@ -68,21 +68,21 @@ export const About = () => {
       <section className="bg-white dark:bg-gray-800 rounded-lg p-8 shadow-sm border border-gray-200 dark:border-gray-700">
         <div className="flex items-center gap-3 mb-4">
           <TrendingUp className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Our Mission</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">My Mission</h2>
         </div>
         <div className="space-y-4 text-gray-700 dark:text-gray-300 leading-relaxed">
           <p>
-            In today's fast-paced markets, staying informed is crucial. We noticed that Twitter investment communities 
+            In today's fast-paced markets, staying informed is crucial. I noticed that Twitter investment communities 
             provide some of the most up-to-date and actionable market information available. However, keeping track 
             of multiple sources can be overwhelming.
           </p>
           <p>
-            FinTweets was created to solve this problem. Every day, we automatically aggregate and synthesize insights 
-            from carefully curated Twitter accounts of experienced investors and analysts. Using advanced AI, we analyze 
-            their posts to identify key investment themes, high-conviction opportunities, and stocks worth watching.
+            I created this daily brief to solve that problem. Every day, insights are automatically aggregated and synthesized 
+            from carefully curated Twitter accounts of experienced investors and analysts. The posts are analyzed 
+            to identify key investment themes, high-conviction opportunities, and stocks worth watching.
           </p>
           <p>
-            Our goal is simple: deliver timely, actionable market intelligence in an easy-to-digest format, so you can 
+            My goal is simple: deliver timely, actionable market intelligence in an easy-to-digest format, so you can 
             make better-informed investment decisions.
           </p>
         </div>
@@ -92,10 +92,10 @@ export const About = () => {
       <section className="bg-white dark:bg-gray-800 rounded-lg p-8 shadow-sm border border-gray-200 dark:border-gray-700">
         <div className="flex items-center gap-3 mb-6">
           <Twitter className="w-6 h-6 text-blue-500" />
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Our Sources</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Sources</h2>
         </div>
         <p className="text-gray-700 dark:text-gray-300 mb-6 leading-relaxed">
-          We track insights from these trusted Twitter accounts, chosen for their track record, analysis quality, 
+          Insights are tracked from these trusted Twitter accounts, chosen for their track record, analysis quality, 
           and unique market perspectives:
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -127,7 +127,7 @@ export const About = () => {
             <div>
               <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Data Collection</h3>
               <p className="text-gray-700 dark:text-gray-300">
-                Every 24 hours, our automated system collects tweets from our curated list of investment Twitter accounts.
+                Every 24 hours, an automated system collects tweets from a curated list of investment Twitter accounts.
               </p>
             </div>
           </div>
@@ -138,7 +138,7 @@ export const About = () => {
             <div>
               <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">AI Analysis</h3>
               <p className="text-gray-700 dark:text-gray-300">
-                Using OpenAI's advanced language models, we analyze the content to identify key insights, ticker mentions, 
+                OpenAI's GPT-4 analyzes the content to identify key insights, ticker mentions, 
                 conviction levels, and investment horizons.
               </p>
             </div>
@@ -217,7 +217,7 @@ export const About = () => {
       <section className="bg-white dark:bg-gray-800 rounded-lg p-8 shadow-sm border border-gray-200 dark:border-gray-700">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">Technology Stack</h2>
         <p className="text-gray-700 dark:text-gray-300 mb-4 leading-relaxed">
-          FinTweets is built with modern technologies to ensure reliability, speed, and a great user experience:
+          This is built with modern technologies to ensure reliability, speed, and a great user experience:
         </p>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {[
@@ -242,7 +242,7 @@ export const About = () => {
       <section className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-6">
         <h2 className="text-xl font-bold text-amber-900 dark:text-amber-200 mb-3">Important Disclaimer</h2>
         <p className="text-amber-800 dark:text-amber-300 text-sm leading-relaxed">
-          FinTweets aggregates and synthesizes publicly available information from Twitter. This content is for 
+          This brief aggregates and synthesizes publicly available information from Twitter. This content is for 
           informational purposes only and should not be considered as financial advice. Always do your own research 
           and consult with a qualified financial advisor before making investment decisions. Past performance does 
           not guarantee future results. Investing carries risk, including the potential loss of capital.
