@@ -9,6 +9,7 @@ export default defineConfig({
     outDir: 'dist',
     assetsDir: 'assets',
     sourcemap: true,
+    emptyOutDir: true, // Clean dist folder before build
   },
 })
 
