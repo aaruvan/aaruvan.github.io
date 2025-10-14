@@ -101,24 +101,29 @@ export const BriefCard = ({ brief, isLatestBrief = false }: BriefCardProps) => {
             Sources
           </h2>
           <ul className="space-y-3">
-            {content.sources.map((source, index) => (
-              <li key={index} className="text-sm">
-                {source.note && (
-                  <span className="text-gray-700 dark:text-gray-300 mr-2">
-                    {source.note} —
-                  </span>
-                )}
-                <a
-                  href={source.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1"
-                >
-                  {source.url}
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-              </li>
-            ))}
+            {content.sources.map((source, index) => {
+              // Clean Twitter URLs to show just the profile
+              const cleanUrl = source.url.replace(/\/status\/\d+.*$/, '');
+              
+              return (
+                <li key={index} className="text-sm">
+                  {source.note && (
+                    <span className="text-gray-700 dark:text-gray-300 mr-2">
+                      {source.note} —
+                    </span>
+                  )}
+                  <a
+                    href={cleanUrl} // Link to clean profile URL
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1"
+                  >
+                    {cleanUrl}
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </li>
+              );
+            })}
           </ul>
         </section>
       )}
