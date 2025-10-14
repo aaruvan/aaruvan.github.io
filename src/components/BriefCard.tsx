@@ -8,19 +8,27 @@ import type { Brief } from '../types';
 
 interface BriefCardProps {
   brief: Brief;
+  isLatestBrief?: boolean;
 }
 
-export const BriefCard = ({ brief }: BriefCardProps) => {
+export const BriefCard = ({ brief, isLatestBrief = false }: BriefCardProps) => {
   const { json: content } = brief;
   const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
+  const [showTooltip, setShowTooltip] = useState(isLatestBrief);
 
   const handleTickerClick = (ticker: string) => {
     console.log('Ticker clicked:', ticker);
     setSelectedTicker(ticker);
+    // Hide tooltip when user clicks any ticker
+    setShowTooltip(false);
   };
 
   const handleCloseModal = () => {
     setSelectedTicker(null);
+  };
+
+  const handleTooltipDismiss = () => {
+    setShowTooltip(false);
   };
 
   return (
@@ -53,6 +61,8 @@ export const BriefCard = ({ brief }: BriefCardProps) => {
                 variant="insight"
                 index={index}
                 onTickerClick={handleTickerClick}
+                showTooltip={index === 0 && showTooltip}
+                onTooltipDismiss={handleTooltipDismiss}
               />
             ))}
           </div>
